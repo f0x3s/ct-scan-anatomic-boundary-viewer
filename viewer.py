@@ -3,11 +3,13 @@ import pydicom
 import dicom2jpg
 import cv2
 import numpy as np
+from pathlib import Path
 
-master_folder_path = "./dicoms"
+master_folder_path = Path("./dicoms")
 
 WINDOW_NAME = "DICOM Viewer"
 current_display_image = None
+region_of_interest = 0
 
 EDGE_COLOR = (50, 0, 255)
 REGION_COLOR = (128, 255, 10)
@@ -303,8 +305,9 @@ def update_slice(val):
     update_display(val)
 
 # even though i dont use val, i need it because opencv expects a function with a single argument in it's callback function
-def update_display(val):
+def update_display(val=None):
     global current_display_image
+    global region_of_interest
 
     # another hacky solution; update_display is called upon created of downsample trakcbar, before slice trackbar is created. This catches the resultant exception.
     try:
@@ -487,17 +490,32 @@ def main():
         update_slice
     )
 
+    # wait for keypress
     while True:
+        # 0xFf == binary masks value to keep only lower 8 bits, ensures standard ASCII code
         key = cv2.waitKey(1) & 0xFF
 
+        # esc
         if key == 27:
             break
 
-        elif key == 32:  # space
+        # space
+        elif key == 32:
+
+            # always update display, catches saving image before sliders changed
+            update_display()
+
             slice_index = cv2.getTrackbarPos("Slice", WINDOW_NAME)
 
-            filename = f"slice_{slice_index + 1}.png"
-            cv2.imwrite(filename, current_display_image)
+            # create outpur folder for series, do nothing if folder already exists
+            output_folder = Path(f".renders/images-{series[0]}")
+            output_folder.mkdir(parents=True, exist_ok=True)
+
+            # <index>_roi-<region_of_interest>.png
+            filename = f"{slice_index + 1}_roi-{anatomy[region_of_interest][0].lower()}.png"
+
+            write_path = output_folder / filename
+            cv2.imwrite(write_path, current_display_image)
 
             print(f"{Colors.GREEN}Saved: {filename}{Colors.ENDC}")
 
