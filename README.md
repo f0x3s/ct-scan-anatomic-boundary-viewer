@@ -46,6 +46,7 @@ Install dependencies with:
 ```bash
 pip install pydicom dicom2jpg opencv-python numpy
 ```
+*note: If fonts fail to load consider downgrding to opencv_python-4.14.0.94*
 
 ## Usage
 
