@@ -534,8 +534,11 @@ def main():
 
             elif user_choice == "y":
                 print(f"{Colors.BLUE}Clearing Renders...{Colors.ENDC}")
-                shutil.rmtree(output_root)
-                print(f"{Colors.BLUE}Cleared{Colors.ENDC}")
+                try: 
+                    shutil.rmtree(output_root)
+                    print(f"{Colors.BLUE}Cleared{Colors.ENDC}")
+                except UnboundLocalError as e:
+                    print(f"{Colors.BLUE}No renders to clear.{Colors.ENDC}")
                 break
 
         except ValueError as e:
