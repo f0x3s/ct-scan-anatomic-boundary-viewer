@@ -3,11 +3,9 @@ import pydicom
 import dicom2jpg
 import cv2
 import numpy as np
-from pathlib import Path
 import shutil
 
-
-master_folder_path = Path("./dicoms")
+master_folder_path = "./dicoms"
 
 WINDOW_NAME = "DICOM Viewer"
 
@@ -140,6 +138,7 @@ def threshold_data(data, region) :
 
 
 def march_squares(binary_data, output_image, downsample):
+
     # create empty image to hold edges
     edge_image = np.zeros(output_image.shape, dtype=np.uint8)
 
@@ -318,11 +317,13 @@ def draw_text_on_image(image, text, position, color=(255, 255, 255)):
 # hacky, but because my thresholding and marching squares functions are so slow, this sets the region trakcbar to 0 when slice trackbar is changed
 # this way user can scroll slices fast, and then change the region of interest after they have found the slice they want to view
 def update_slice(val):
+
     cv2.setTrackbarPos("Region", WINDOW_NAME, 0)
     update_display(val)
 
 # even though i dont use val, i need it because opencv expects a function with a single argument in it's callback function
 def update_display(val=None):
+
     global current_display_image
     global region_of_interest
 
@@ -422,7 +423,6 @@ def main():
     # this ahs to be global so that the update_display function can access it
     global dicoms
 
-
     print(f"{Colors.PURPLE}Welcome to the DICOM Viewer!{Colors.ENDC}")
 
     # identify all dicom series in the master folder
@@ -472,8 +472,6 @@ def main():
     print(f"{Colors.BLUE}   press <esc> to close{Colors.ENDC}")
     print(f"{Colors.BLUE}   press <space> to save image{Colors.ENDC}")
     
-
-
     # build openCV window
     cv2.namedWindow(WINDOW_NAME)
 
@@ -529,14 +527,14 @@ def main():
             slice_index = cv2.getTrackbarPos("Slice", WINDOW_NAME)
 
             # create outpur folder for series, do nothing if folder already exists
-            output_root = Path("./renders")
-            output_folder = output_root / f"images-{series[0]}"
-            output_folder.mkdir(parents=True, exist_ok=True)
+            output_root = "./renders"
+            output_folder = os.path.join(output_root, f"images-{series[0]}")
+            os.makedirs(output_folder, exist_ok=True)
 
             # <index>_roi-<region_of_interest>.png
             filename = f"{slice_index + 1}_roi-{anatomy[region_of_interest][0].lower()}.png"
 
-            write_path = output_folder / filename
+            write_path = os.path.join(output_folder, filename)
             cv2.imwrite(write_path, current_display_image)
 
             print(f"{Colors.GREEN}Saved: {filename}{Colors.ENDC}")
