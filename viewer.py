@@ -298,7 +298,7 @@ def draw_text_on_image(image, text, position, color=(255, 255, 255)):
     # draw a filled rectangle behind the text
     cv2.rectangle(image, (position[0], position[1] - text_height - baseline), (position[0] + text_width, position[1] + baseline), (0, 0, 0), cv2.FILLED)
 
-    cv2.putText(image, text, position, cv2.FONT_HERSHEY_PLAIN, font_scale, color, font_thickness)
+    cv2.putText(image, text, position, font, font_scale, color, font_thickness)
 
 # hacky, but because my thresholding and marching squares functions are so slow, this sets the region trakcbar to 0 when slice trackbar is changed
 # this way user can scroll slices fast, and then change the region of interest after they have found the slice they want to view
