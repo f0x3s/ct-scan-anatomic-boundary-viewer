@@ -140,9 +140,13 @@ def threshold_data(data, region) :
 
 
 def march_squares(binary_data, output_image, downsample):
-
+    # create empty image to hold edges
     edge_image = np.zeros(output_image.shape, dtype=np.uint8)
+
+    # march cells
     cells = check_cells(binary_data)
+
+    # cell data to line segment
     segments = lookup(cells, downsample)
 
     for point_1, point_2 in segments:
@@ -163,23 +167,29 @@ def check_cells(image) :
 
     cells = []
 
+    # sweep 2x2 px window over image 
     for y in range(height-1) :
         for x in range(width-1) :
 
+            # 2x2 window
             sub_grid = []
 
             for sub_y in [0,1] :
                 for sub_x in [0,1] :
+
+                    # write 1 to list of corner values if current window pixel is filled
                     corner = 1 if grid[y + sub_y][x + sub_x] == 255 else 0
                     sub_grid.append(corner)
 
+            # corner values assocaited with window position
             cells.append((x,y,sub_grid))
 
     return cells
 
 def lookup(cells, downsample) :
-    half = downsample // 2
 
+    # scale unit vector endpoints to match downsample
+    half = downsample // 2
     edge_midpoints = {
         "top":    (half, 0),
         "right":  (downsample, half),
@@ -190,8 +200,11 @@ def lookup(cells, downsample) :
     segments = []
 
     for x, y, corners in cells:
+
+        # join list of corners togeether to make binary number, then convert to base 10 for easy case lookup
         case = int("".join(str(corner) for corner in corners), 2)
 
+        # scale window position
         origin_x = x * downsample
         origin_y = y * downsample
 
