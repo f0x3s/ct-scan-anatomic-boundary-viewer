@@ -296,11 +296,15 @@ def draw_text_on_image(image, text, position, color=(255, 255, 255)):
 
     cv2.putText(image, text, position, cv2.FONT_HERSHEY_PLAIN, font_scale, color, font_thickness)
 
+
 # hacky, but because my thresholding and marching squares functions are so slow, this sets the region trakcbar to 0 when slice trackbar is changed
 # this way user can scroll slices fast, and then change the region of interest after they have found the slice they want to view
 def update_slice(val):
     cv2.setTrackbarPos("Region", WINDOW_NAME, 0)
     update_display(val)
+
+def update_tint(val):
+    tint_amt = val/100
 
 # even though i dont use val, i need it because opencv expects a function with a single argument in it's callback function
 def update_display(val):
@@ -314,10 +318,16 @@ def update_display(val):
     region_of_interest = cv2.getTrackbarPos("Region", WINDOW_NAME)
 
     # ensure even number for better scaling
-    downsample = 2 * cv2.getTrackbarPos("Downsample", WINDOW_NAME)
+    try:
+        downsample = 2 * cv2.getTrackbarPos("Downsample", WINDOW_NAME)
+    except:
+        downsample = 2
 
     # prevent div by 0 error in resize function
     downsample = 1 if downsample == 0 else downsample
+
+    tint_amt = cv2.getTrackbarPos("Tint", WINDOW_NAME)
+    tint_amt = tint_amt/100
 
     # fetch normalized image for display and convert to BGR from monochrome.
     display_image = dicoms[slice_index][0].copy()
@@ -349,6 +359,20 @@ def update_display(val):
         # colored edge image on black bg
         edges = march_squares(half_size_binary, display_image, downsample)
 
+        # tint region by creating a copy of image and blending between it and single-color layer
+        color_layer = np.full_like(display_image, REGION_COLOR)
+        region_tint = cv2.addWeighted(display_image, 1-tint_amt, color_layer, tint_amt, 0)
+
+        # copy display image pixels where region mask is not white else write (0,0,0)
+        masked_display_image = cv2.bitwise_and(display_image, display_image, mask=cv2.bitwise_not(binary_data))
+
+        # copy tinted pixels where region is white else write (0,0,0)
+        region_tint = cv2.bitwise_and(region_tint, region_tint, mask=binary_data)
+
+        # merge tinted region with display image
+        display_image = cv2.add(masked_display_image, region_tint)
+
+
         # create mask from edges
         edges_mask = cv2.cvtColor(edges, cv2.COLOR_BGR2GRAY)
         # i can use the more efficient openCV threshold function here because my image is uint8 (0-255)
@@ -357,7 +381,6 @@ def update_display(val):
         # copy image pixels where edges mask is not white else write (0,0,0)
         # in service of adding edges atop image
         masked_display_image = cv2.bitwise_and(display_image, display_image, mask=cv2.bitwise_not(edges_mask))
-
         display_image = cv2.add(masked_display_image, edges)
 
     # get the size of the display image for positioning text
@@ -439,12 +462,20 @@ def main():
     )
 
     cv2.createTrackbar(
-                "Downsample",
-                WINDOW_NAME,
-                1,
-                5,
-                update_display
-            )
+        "Tint",
+        WINDOW_NAME,
+        25,
+        100,
+        update_display
+    )
+
+    cv2.createTrackbar(
+        "Downsample",
+        WINDOW_NAME,
+        1,
+        5,
+        update_display
+    )
 
     cv2.createTrackbar(
         "Slice",
