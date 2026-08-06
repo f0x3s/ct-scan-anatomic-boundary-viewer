@@ -169,8 +169,8 @@ def lookup(cells) :
     for x, y, corners in cells:
         case = int("".join(str(corner) for corner in corners), 2)
 
-        origin_x = x #  * 2
-        origin_y = y # * 2
+        origin_x = x * 2
+        origin_y = y * 2
 
         if case == 1 or case == 14:
             point_1 = (
@@ -278,12 +278,20 @@ def update_display(val):
         data = dicoms[slice_index][1]
 
         # apply a Gaussian blur to reduce noise
-        data = cv2.GaussianBlur(data, (21, 21), 0)
+        data = cv2.GaussianBlur(data, (11, 11), 0)
 
         #threshold the data to create a binary image of type uint8 for the selected region of interest
         binary_data = threshold_data(data, region_of_interest)
 
-        march_squares(binary_data, display_image)
+        half_size_binary = cv2.resize(
+            binary_data,
+            None,
+            fx=0.5,
+            fy=0.5,
+            interpolation=cv2.INTER_NEAREST
+        )
+
+        march_squares(half_size_binary, display_image)
 
     # get the size of the display image for positioning text
     display_size = (display_image.shape[1], display_image.shape[0])
