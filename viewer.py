@@ -46,7 +46,11 @@ def list_folders(path):
 
 # check if the user selected series number is valid
 def validate_user_selected_series(series_number, dicom_series_paths):
-    if series_number < 1 or series_number > len(dicom_series_paths):
+
+    if isinstance(series_number, int) and (series_number > 1 or series_number < len(dicom_series_paths)):
+        return int(series_number)
+
+    else:
         raise ValueError(f"Invalid series number. Please enter a number between 1 and {len(dicom_series_paths)}.")
 
 # check if the user input is valid  for yes or no
@@ -123,17 +127,20 @@ def threshold_data(data, region) :
 
 def march_squares(binary_data, output_image):
 
+    edge_image = np.zeros(output_image.shape, dtype=np.uint8)
     cells = check_cells(binary_data)
     segments = lookup(cells)
 
     for point_1, point_2 in segments:
         cv2.line(
-            output_image,
+            edge_image,
             point_1,
             point_2,
-            (50, 0, 255),
+            (50, 50, 255),
             1
         )
+
+    return edge_image
 
 def check_cells(image) :
 
@@ -271,8 +278,6 @@ def update_display(val):
     display_image = dicoms[slice_index][0].copy()
     display_image = cv2.cvtColor(display_image, cv2.COLOR_GRAY2BGR)
 
-    edges = np.zeros(display_image.shape, dtype=np.uint8)
-
     if region_of_interest != 0:
         # get the pixel data for the current slice
         data = dicoms[slice_index][1]
@@ -291,7 +296,13 @@ def update_display(val):
             interpolation=cv2.INTER_NEAREST
         )
 
-        march_squares(half_size_binary, display_image)
+        edges = march_squares(half_size_binary, display_image)
+
+        edges_mask = cv2.cvtColor(edges, cv2.COLOR_BGR2GRAY)
+
+        masked_display_image = cv2.bitwise_and(display_image, display_image, mask=cv2.bitwise_not(edges_mask))
+
+        display_image = cv2.add(masked_display_image, edges)
 
     # get the size of the display image for positioning text
     display_size = (display_image.shape[1], display_image.shape[0])
@@ -307,7 +318,6 @@ def update_display(val):
 
 
     cv2.imshow(WINDOW_NAME, display_image)
-
 
 def main():
 
@@ -328,9 +338,9 @@ def main():
 
     while(True):
         try:
-            series_number = int(input())
+            series_number = input()
 
-            validate_user_selected_series(series_number, dicom_series_paths)
+            series_number = validate_user_selected_series(series_number, dicom_series_paths)
     
             break
             
