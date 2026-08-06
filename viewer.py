@@ -4,6 +4,8 @@ import dicom2jpg
 import cv2
 import numpy as np
 from pathlib import Path
+import shutil
+
 
 master_folder_path = Path("./dicoms")
 
@@ -508,7 +510,8 @@ def main():
             slice_index = cv2.getTrackbarPos("Slice", WINDOW_NAME)
 
             # create outpur folder for series, do nothing if folder already exists
-            output_folder = Path(f".renders/images-{series[0]}")
+            output_root = Path("./renders")
+            output_folder = output_root / f"images-{series[0]}"
             output_folder.mkdir(parents=True, exist_ok=True)
 
             # <index>_roi-<region_of_interest>.png
@@ -519,6 +522,26 @@ def main():
 
             print(f"{Colors.GREEN}Saved: {filename}{Colors.ENDC}")
 
+    # pure convenience - optinally wipes render folder
+    print(f"{Colors.PURPLE}Clear renders? (y/n){Colors.ENDC}")
+
+    while(True):
+        try: 
+            user_choice = validate_user_yes_or_no(input())
+
+            if user_choice == "n":
+                break
+
+            elif user_choice == "y":
+                print(f"{Colors.BLUE}Clearing Renders...{Colors.ENDC}")
+                shutil.rmtree(output_root)
+                print(f"{Colors.BLUE}Cleared{Colors.ENDC}")
+                break
+
+        except ValueError as e:
+                print(f"{Colors.RED}Error: {e}{Colors.ENDC}")
+
+    print(f"\n{Colors.RED}Quitting.{Colors.ENDC}")
 
 if __name__ == "__main__":
     main()
