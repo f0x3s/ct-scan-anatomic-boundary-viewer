@@ -9,12 +9,24 @@ master_folder_path = "./dicoms"
 WINDOW_NAME = "DICOM Viewer"
 
 # used for printing colors in terminal
-class colors:
+# using a class instead of a dictionary because it is easier to access the values without having to use quotes
+class Colors:
     PURPLE = '\033[95m'
     BLUE = '\033[94m'
     GREEN = '\033[92m'
     RED = '\033[91m'
     ENDC = '\033[0m'
+
+class Anatomy:
+    AIR = (-1000, -500)
+    LUNG = (-700, -600)
+    FAT = (-120, -90)
+    WATER = (-20, 20)
+    BLOOD = (13, 50)
+    MUSCLE = (35, 55)
+    SOFT_TISSUE = (100, 300)
+    BONE = (700, 3000)
+    METAL = (3000, 10000)
 
 # list all folders in a given path root
 def list_folders(path):
@@ -94,6 +106,15 @@ def process_dicom_files(dicom_files):
 
     return dcms
 
+def threshold_data(data, value) :
+    thresh = data.copy()
+
+    for y, row in enumerate(thresh) :
+        for x, pixel in enumerate(row) :
+            thresh[y][x] = 255 if (pixel > value - 30 )and (pixel < value + 30) else 0
+
+    return thresh
+
 # function to draw text on an image with a black background for better visibility
 # also simplifies the process of drawing text because I am always using th e same font, scale, and thickness
 def draw_text_on_image(image, text, position, color=(255, 255, 255)):
@@ -114,11 +135,16 @@ def draw_text_on_image(image, text, position, color=(255, 255, 255)):
 def update_display(val):
     slice_index = cv2.getTrackbarPos("Slice", WINDOW_NAME)
 
+    # get the pixel data for the current slice and apply a Gaussian blur to reduce noise
+    data = dicoms[slice_index][1]
+    data = cv2.GaussianBlur(data, (5, 5), 0)
+
+
     # fetch normalized image for display and convert to BGR from monochrome.
     display_image = dicoms[slice_index][0]
     display_image = cv2.cvtColor(display_image, cv2.COLOR_GRAY2BGR)
 
-    
+    # get the size of the display image for positioning text
     display_size = (display_image.shape[1], display_image.shape[0])
 
     slice_text = f"Slice: {slice_index + 1}/{len(dicoms)-1}\nPosition: {dicoms[slice_index][2]:.2f}mm"
@@ -135,17 +161,17 @@ def main():
     # this ahs to be global so that the update_display function can access it
     global dicoms
 
-    print(f"{colors.PURPLE}Welcome to the DICOM Viewer!{colors.ENDC}")
+    print(f"{Colors.PURPLE}Welcome to the DICOM Viewer!{Colors.ENDC}")
 
     # identify all dicom series in the master folder
     dicom_series_paths = list_folders(master_folder_path)
 
-    print(f"\n{colors.PURPLE}{len(dicom_series_paths)} dicom series are available to view: {colors.ENDC}")
+    print(f"\n{Colors.PURPLE}{len(dicom_series_paths)} dicom series are available to view: {Colors.ENDC}")
 
     for item in range(len(dicom_series_paths)):
-        print(f"{colors.BLUE}    ({item + 1}) {dicom_series_paths[item][0]}{colors.ENDC}")
+        print(f"{Colors.BLUE}    ({item + 1}) {dicom_series_paths[item][0]}{Colors.ENDC}")
 
-    print(f"\n{colors.PURPLE}Enter the number of the dicom series you want to view: {colors.ENDC}")
+    print(f"\n{Colors.PURPLE}Enter the number of the dicom series you want to view: {Colors.ENDC}")
 
     while(True):
         try:
@@ -156,15 +182,15 @@ def main():
             break
             
         except ValueError as e:
-            print(f"{colors.RED}Error: {e}{colors.ENDC}")
+            print(f"{Colors.RED}Error: {e}{Colors.ENDC}")
 
     series = dicom_series_paths[series_number - 1]
 
-    print(f"\n{colors.GREEN}You selected: {series[0]}{colors.ENDC}")
+    print(f"\n{Colors.GREEN}You selected: {series[0]}{Colors.ENDC}")
 
     dicoms = process_dicom_files(collate_dicom_files(series[1]))
 
-    print(f"\n{colors.PURPLE}Found {len(dicoms)-1} dicom images in the selected series. Proceed? (y/n){colors.ENDC}")
+    print(f"\n{Colors.PURPLE}Found {len(dicoms)-1} dicom images in the selected series. Proceed? (y/n){Colors.ENDC}")
 
     while(True):
         try: 
@@ -174,11 +200,11 @@ def main():
                 break
 
             elif user_choice == "n":
-                print(f"{colors.RED}Exiting program...{colors.ENDC}")
+                print(f"{Colors.RED}Exiting program...{Colors.ENDC}")
                 exit()
 
         except ValueError as e:
-                print(f"{colors.RED}Error: {e}{colors.ENDC}")
+                print(f"{Colors.RED}Error: {e}{Colors.ENDC}")
 
 
     # build openCV window
