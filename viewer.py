@@ -10,6 +10,8 @@ import shutil
 master_folder_path = Path("./dicoms")
 
 WINDOW_NAME = "DICOM Viewer"
+
+# globals for image save
 current_display_image = None
 region_of_interest = 0
 
@@ -499,6 +501,7 @@ def main():
 
         # esc
         if key == 27:
+            cv2.destroyWindow(WINDOW_NAME)
             break
 
         # space
