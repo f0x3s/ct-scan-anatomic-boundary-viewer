@@ -120,6 +120,127 @@ def threshold_data(data, region) :
 
     return thresh
 
+
+def march_squares(binary_data, output_image):
+
+    cells = check_cells(binary_data)
+    segments = lookup(cells)
+
+    for point_1, point_2 in segments:
+        cv2.line(
+            output_image,
+            point_1,
+            point_2,
+            (50, 0, 255),
+            1
+        )
+
+def check_cells(image) :
+
+    grid = image.copy()
+    height, width = grid.shape[:2]
+
+    cells = []
+
+    for y in range(height-1) :
+        for x in range(width-1) :
+
+            sub_grid = []
+
+            for sub_y in [0,1] :
+                for sub_x in [0,1] :
+                    corner = 1 if grid[y + sub_y][x + sub_x] == 255 else 0
+                    sub_grid.append(corner)
+
+            cells.append((x,y,sub_grid))
+
+    return cells
+
+def lookup(cells) :
+    edge_midpoints = {
+        "top":    (1, 0),
+        "right":  (2, 1),
+        "bottom": (1, 2),
+        "left":   (0, 1),
+    }
+
+    segments = []
+
+    for x, y, corners in cells:
+        case = int("".join(str(corner) for corner in corners), 2)
+
+        origin_x = x #  * 2
+        origin_y = y # * 2
+
+        if case == 1 or case == 14:
+            point_1 = (
+                origin_x + edge_midpoints["bottom"][0],
+                origin_y + edge_midpoints["bottom"][1]
+            )
+            point_2 = (
+                origin_x + edge_midpoints["right"][0],
+                origin_y + edge_midpoints["right"][1]
+            )
+            segments.append((point_1, point_2))
+
+        if case == 2 or case == 13:
+            point_1 = (
+                origin_x + edge_midpoints["left"][0],
+                origin_y + edge_midpoints["left"][1]
+            )
+            point_2 = (
+                origin_x + edge_midpoints["bottom"][0],
+                origin_y + edge_midpoints["bottom"][1]
+            )
+            segments.append((point_1, point_2))
+
+        if case == 3 or case == 12:
+            point_1 = (
+                origin_x + edge_midpoints["left"][0],
+                origin_y + edge_midpoints["left"][1]
+            )
+            point_2 = (
+                origin_x + edge_midpoints["right"][0],
+                origin_y + edge_midpoints["right"][1]
+            )
+            segments.append((point_1, point_2))
+
+        if case == 4 or case == 11:
+            point_1 = (
+                origin_x + edge_midpoints["top"][0],
+                origin_y + edge_midpoints["top"][1]
+            )
+            point_2 = (
+                origin_x + edge_midpoints["right"][0],
+                origin_y + edge_midpoints["right"][1]
+            )
+            segments.append((point_1, point_2))
+
+        if case == 5 or case == 10:
+            point_1 = (
+                origin_x + edge_midpoints["top"][0],
+                origin_y + edge_midpoints["top"][1]
+            )
+            point_2 = (
+                origin_x + edge_midpoints["bottom"][0],
+                origin_y + edge_midpoints["bottom"][1]
+            )
+            segments.append((point_1, point_2))
+
+        if case == 7 or case == 8:
+            point_1 = (
+                origin_x + edge_midpoints["left"][0],
+                origin_y + edge_midpoints["left"][1]
+            )
+            point_2 = (
+                origin_x + edge_midpoints["top"][0],
+                origin_y + edge_midpoints["top"][1]
+            )
+            segments.append((point_1, point_2))
+
+    return segments
+
+
 # function to draw text on an image with a black background for better visibility
 # also simplifies the process of drawing text because I am always using th e same font, scale, and thickness
 def draw_text_on_image(image, text, position, color=(255, 255, 255)):
@@ -146,18 +267,23 @@ def update_display(val):
     slice_index = cv2.getTrackbarPos("Slice", WINDOW_NAME)
     region_of_interest = cv2.getTrackbarPos("Region", WINDOW_NAME)
 
-    # get the pixel data for the current slice
-    data = dicoms[slice_index][1]
-
-    if region_of_interest != 0:
-
-        # apply a Gaussian blur to reduce noise
-        data = cv2.GaussianBlur(data, (5, 5), 0)
-        data = threshold_data(data, region_of_interest)
-
     # fetch normalized image for display and convert to BGR from monochrome.
     display_image = dicoms[slice_index][0].copy()
     display_image = cv2.cvtColor(display_image, cv2.COLOR_GRAY2BGR)
+
+    edges = np.zeros(display_image.shape, dtype=np.uint8)
+
+    if region_of_interest != 0:
+        # get the pixel data for the current slice
+        data = dicoms[slice_index][1]
+
+        # apply a Gaussian blur to reduce noise
+        data = cv2.GaussianBlur(data, (21, 21), 0)
+
+        #threshold the data to create a binary image of type uint8 for the selected region of interest
+        binary_data = threshold_data(data, region_of_interest)
+
+        march_squares(binary_data, display_image)
 
     # get the size of the display image for positioning text
     display_size = (display_image.shape[1], display_image.shape[0])
