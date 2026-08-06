@@ -17,16 +17,17 @@ class Colors:
     RED = '\033[91m'
     ENDC = '\033[0m'
 
-class Anatomy:
-    AIR = (-1000, -500)
-    LUNG = (-700, -600)
-    FAT = (-120, -90)
-    WATER = (-20, 20)
-    BLOOD = (13, 50)
-    MUSCLE = (35, 55)
-    SOFT_TISSUE = (100, 300)
-    BONE = (700, 3000)
-    METAL = (3000, 10000)
+# list containing the names and Hounsfield Unit ranges for various anatomical structures
+# https://en.wikipedia.org/wiki/Hounsfield_scale
+anatomy = [
+    ("None", (None, None)),
+    ("Air", (-1000, -500)),
+    ("Fat", (-100, -60)),
+    ("Water", (-5, 5)),
+    ("Soft Tissue", (25, 60)),
+    ("Bone", (300, 3000)),
+    ("Metal", (3000, 10000))
+]
 
 # list all folders in a given path root
 def list_folders(path):
@@ -106,12 +107,16 @@ def process_dicom_files(dicom_files):
 
     return dcms
 
-def threshold_data(data, value) :
-    thresh = data.copy()
+def threshold_data(data, region) :
 
-    for y, row in enumerate(thresh) :
+    # create a new array to hold the thresholded data of same shape as the original data, but with a data type of uint8 (0-255)
+    thresh = np.zeros(data.shape, dtype=np.uint8)
+
+    min_hu, max_hu = anatomy[region][1]
+
+    for y, row in enumerate(data) :
         for x, pixel in enumerate(row) :
-            thresh[y][x] = 255 if (pixel > value - 30 )and (pixel < value + 30) else 0
+            thresh[y][x] = 255 if (pixel > min_hu)and (pixel < max_hu) else 0
 
     return thresh
 
@@ -131,17 +136,27 @@ def draw_text_on_image(image, text, position, color=(255, 255, 255)):
 
     cv2.putText(image, text, position, cv2.FONT_HERSHEY_PLAIN, font_scale, color, font_thickness)
 
+# hacky, but because my thresholding and marching squares functions are so slow, this sets the region trakcbar to 0 when slice trackbar is changed
+# this way user can scroll slices fast, and then change the region of interest after they have found the slice they want to view
+def update_slice(val):
+    cv2.setTrackbarPos("Region", WINDOW_NAME, 0)
+    update_display(val)
 
 def update_display(val):
     slice_index = cv2.getTrackbarPos("Slice", WINDOW_NAME)
+    region_of_interest = cv2.getTrackbarPos("Region", WINDOW_NAME)
 
-    # get the pixel data for the current slice and apply a Gaussian blur to reduce noise
+    # get the pixel data for the current slice
     data = dicoms[slice_index][1]
-    data = cv2.GaussianBlur(data, (5, 5), 0)
 
+    if region_of_interest != 0:
+
+        # apply a Gaussian blur to reduce noise
+        data = cv2.GaussianBlur(data, (5, 5), 0)
+        data = threshold_data(data, region_of_interest)
 
     # fetch normalized image for display and convert to BGR from monochrome.
-    display_image = dicoms[slice_index][0]
+    display_image = dicoms[slice_index][0].copy()
     display_image = cv2.cvtColor(display_image, cv2.COLOR_GRAY2BGR)
 
     # get the size of the display image for positioning text
@@ -149,9 +164,13 @@ def update_display(val):
 
     slice_text = f"Slice: {slice_index + 1}/{len(dicoms)-1}\nPosition: {dicoms[slice_index][2]:.2f}mm"
     patient_text = f"Patient ID: {dicoms[slice_index][3]}"
+    region_text = f"Region: {anatomy[region_of_interest][0]}"
 
     draw_text_on_image(display_image, slice_text, (10, 20), color=(255, 255, 255))
+    draw_text_on_image(display_image, region_text, (10, 60), color=(128, 255, 10))
+
     draw_text_on_image(display_image, patient_text, (10, display_size[1] - 10), color=(255, 128, 10))
+
 
     cv2.imshow(WINDOW_NAME, display_image)
 
@@ -210,19 +229,27 @@ def main():
     # build openCV window
     cv2.namedWindow(WINDOW_NAME)
 
+    # create trackbars for slice selection and region selection
+    cv2.createTrackbar(
+        "Region",
+        WINDOW_NAME,
+        0,
+        len(anatomy) - 1,
+        update_display
+    )
+
     cv2.createTrackbar(
         "Slice",
         WINDOW_NAME,
         round(len(dicoms)/2.0),
         len(dicoms) - 1,
-        update_display
+        update_slice
     )
 
     # wait for esc key to be pressed to exit the program
     while True:
         if cv2.waitKey(1) & 0xFF == 27:
             break
-
 
 
 if __name__ == "__main__":
