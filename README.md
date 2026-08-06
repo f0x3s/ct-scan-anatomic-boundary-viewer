@@ -71,6 +71,9 @@ python viewer.py
 
 Select a DICOM series when prompted. Use the viewer controls to navigate slices and adjust the segmentation.
 
-Press `Space` to save the currently displayed image.
-Press `esc` to close the window.
+- Press `Space` to save the currently displayed image
+
+- Press `esc` to close the window
+
+For convenience, the program will prompt you to remove or keep the saved images directory before closing.
 
