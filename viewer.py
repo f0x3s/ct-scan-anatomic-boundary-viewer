@@ -7,6 +7,7 @@ import numpy as np
 master_folder_path = "./dicoms"
 
 WINDOW_NAME = "DICOM Viewer"
+current_display_image = None
 
 EDGE_COLOR = (50, 0, 255)
 REGION_COLOR = (128, 255, 10)
@@ -262,7 +263,6 @@ def lookup(cells, downsample) :
                 origin_y + edge_midpoints["bottom"][1]
             )
 
-
             segments.append((point_1, point_2))
             segments.append((point_3, point_4))
 
@@ -296,7 +296,6 @@ def draw_text_on_image(image, text, position, color=(255, 255, 255)):
 
     cv2.putText(image, text, position, cv2.FONT_HERSHEY_PLAIN, font_scale, color, font_thickness)
 
-
 # hacky, but because my thresholding and marching squares functions are so slow, this sets the region trakcbar to 0 when slice trackbar is changed
 # this way user can scroll slices fast, and then change the region of interest after they have found the slice they want to view
 def update_slice(val):
@@ -305,6 +304,7 @@ def update_slice(val):
 
 # even though i dont use val, i need it because opencv expects a function with a single argument in it's callback function
 def update_display(val):
+    global current_display_image
 
     # another hacky solution; update_display is called upon created of downsample trakcbar, before slice trackbar is created. This catches the resultant exception.
     try:
@@ -391,13 +391,14 @@ def update_display(val):
 
     draw_text_on_image(display_image, patient_text, (10, display_size[1] - 10), color=(255, 128, 10))
 
-
+    current_display_image = display_image.copy()
     cv2.imshow(WINDOW_NAME, display_image)
 
 def main():
 
     # this ahs to be global so that the update_display function can access it
     global dicoms
+
 
     print(f"{Colors.PURPLE}Welcome to the DICOM Viewer!{Colors.ENDC}")
 
@@ -445,6 +446,9 @@ def main():
                 print(f"{Colors.RED}Error: {e}{Colors.ENDC}")
 
     print(f"\n{Colors.GREEN}Opened: {series[0]}{Colors.ENDC}")
+    print(f"{Colors.BLUE}   press <esc> to close{Colors.ENDC}")
+    print(f"{Colors.BLUE}   press <space> to save image{Colors.ENDC}")
+    
 
 
     # build openCV window
@@ -483,10 +487,19 @@ def main():
         update_slice
     )
 
-    # wait for esc key to be pressed to exit the program
     while True:
-        if cv2.waitKey(1) & 0xFF == 27:
+        key = cv2.waitKey(1) & 0xFF
+
+        if key == 27:
             break
+
+        elif key == 32:  # space
+            slice_index = cv2.getTrackbarPos("Slice", WINDOW_NAME)
+
+            filename = f"slice_{slice_index + 1}.png"
+            cv2.imwrite(filename, current_display_image)
+
+            print(f"{Colors.GREEN}Saved: {filename}{Colors.ENDC}")
 
 
 if __name__ == "__main__":
