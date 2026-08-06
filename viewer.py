@@ -444,6 +444,8 @@ def main():
         except ValueError as e:
                 print(f"{Colors.RED}Error: {e}{Colors.ENDC}")
 
+    print(f"\n{Colors.GREEN}Opened: {series[0]}{Colors.ENDC}")
+
 
     # build openCV window
     cv2.namedWindow(WINDOW_NAME)
