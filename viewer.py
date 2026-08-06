@@ -34,6 +34,16 @@ def validate_user_selected_series(series_number, dicom_series_paths):
     if series_number < 1 or series_number > len(dicom_series_paths):
         raise ValueError(f"Invalid series number. Please enter a number between 1 and {len(dicom_series_paths)}.")
 
+# check if the user input is valid  for yes or no
+def validate_user_yes_or_no(user_input):
+
+    user_input = user_input.strip().lower()
+
+    if user_input not in ["y", "n", "yes", "no"]:
+        raise ValueError("Invalid input. Please enter 'y' or 'n'.")
+
+    return "y" if user_input in ["y", "yes"] else "n"
+
 # fetches all dicom files in given path and sorts by slice positon
 # returnds a list of dicom files
 def collate_dicom_files(series_path):
@@ -77,8 +87,6 @@ def process_dicom_files(dicom_files):
 
     return dicoms
 
-
-
 def main():
 
     print(f"{colors.PURPLE}Welcome to the DICOM Viewer!{colors.ENDC}")
@@ -112,6 +120,19 @@ def main():
 
     print(f"\n{colors.PURPLE}Found {len(dicoms)} dicom images in the selected series. Proceed? (y/n){colors.ENDC}")
 
+    while(True):
+        try: 
+            user_choice = validate_user_yes_or_no(input())
+
+            if user_choice == "y":
+                break
+
+            elif user_choice == "n":
+                print(f"{colors.RED}Exiting program...{colors.ENDC}")
+                exit()
+
+        except ValueError as e:
+                print(f"{colors.RED}Error: {e}{colors.ENDC}")
 
 
 
