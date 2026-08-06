@@ -8,6 +8,9 @@ master_folder_path = "./dicoms"
 
 WINDOW_NAME = "DICOM Viewer"
 
+EDGE_COLOR = (50, 0, 255)
+REGION_COLOR = (128, 255, 10)
+
 # used for printing colors in terminal
 # using a class instead of a dictionary because it is easier to access the values without having to use quotes
 class Colors:
@@ -46,13 +49,17 @@ def list_folders(path):
 
 # check if the user selected series number is valid
 def validate_user_selected_series(series_number, dicom_series_paths):
+    try:
+        series_number = int(series_number)
+    except ValueError:
+        raise ValueError("Series number must be an integer")
 
-    if isinstance(series_number, int) and (series_number > 1 or series_number < len(dicom_series_paths)):
-        return int(series_number)
+    if series_number < 1 or series_number > len(dicom_series_paths):
+        raise ValueError(
+            f"Invalid series number. Please enter a number between 1 and {len(dicom_series_paths)}."
+        )
 
-    else:
-        raise ValueError(f"Invalid series number. Please enter a number between 1 and {len(dicom_series_paths)}.")
-
+    return series_number
 # check if the user input is valid  for yes or no
 def validate_user_yes_or_no(user_input):
 
@@ -125,18 +132,18 @@ def threshold_data(data, region) :
     return thresh
 
 
-def march_squares(binary_data, output_image):
+def march_squares(binary_data, output_image, downsample):
 
     edge_image = np.zeros(output_image.shape, dtype=np.uint8)
     cells = check_cells(binary_data)
-    segments = lookup(cells)
+    segments = lookup(cells, downsample)
 
     for point_1, point_2 in segments:
         cv2.line(
             edge_image,
             point_1,
             point_2,
-            (50, 50, 255),
+            EDGE_COLOR,
             1
         )
 
@@ -163,21 +170,23 @@ def check_cells(image) :
 
     return cells
 
-def lookup(cells) :
-    edge_midpoints = {
-        "top":    (1, 0),
-        "right":  (2, 1),
-        "bottom": (1, 2),
-        "left":   (0, 1),
-    }
+def lookup(cells, downsample) :
+    half = downsample // 2
 
+    edge_midpoints = {
+        "top":    (half, 0),
+        "right":  (downsample, half),
+        "bottom": (half, downsample),
+        "left":   (0, half),
+    }
+    
     segments = []
 
     for x, y, corners in cells:
         case = int("".join(str(corner) for corner in corners), 2)
 
-        origin_x = x * 2
-        origin_y = y * 2
+        origin_x = x * downsample
+        origin_y = y * downsample
 
         if case == 1 or case == 14:
             point_1 = (
@@ -270,9 +279,14 @@ def update_slice(val):
     cv2.setTrackbarPos("Region", WINDOW_NAME, 0)
     update_display(val)
 
+# even though i dont use val, i need it because opencv expects a function with a single argument in it's callback function
 def update_display(val):
     slice_index = cv2.getTrackbarPos("Slice", WINDOW_NAME)
     region_of_interest = cv2.getTrackbarPos("Region", WINDOW_NAME)
+
+    downsample = 2 * cv2.getTrackbarPos("Downsample", WINDOW_NAME)
+
+    downsample = 1 if downsample == 0 else downsample
 
     # fetch normalized image for display and convert to BGR from monochrome.
     display_image = dicoms[slice_index][0].copy()
@@ -291,14 +305,16 @@ def update_display(val):
         half_size_binary = cv2.resize(
             binary_data,
             None,
-            fx=0.5,
-            fy=0.5,
+            fx=1/downsample,
+            fy=1/downsample,
             interpolation=cv2.INTER_NEAREST
         )
 
-        edges = march_squares(half_size_binary, display_image)
+        edges = march_squares(half_size_binary, display_image, downsample)
+
 
         edges_mask = cv2.cvtColor(edges, cv2.COLOR_BGR2GRAY)
+        edges_mask = cv2.threshold(edges_mask, 1, 255, cv2.THRESH_BINARY)[1]
 
         masked_display_image = cv2.bitwise_and(display_image, display_image, mask=cv2.bitwise_not(edges_mask))
 
@@ -312,7 +328,7 @@ def update_display(val):
     region_text = f"Region: {anatomy[region_of_interest][0]}"
 
     draw_text_on_image(display_image, slice_text, (10, 20), color=(255, 255, 255))
-    draw_text_on_image(display_image, region_text, (10, 60), color=(128, 255, 10))
+    draw_text_on_image(display_image, region_text, (10, 60), color=REGION_COLOR)
 
     draw_text_on_image(display_image, patient_text, (10, display_size[1] - 10), color=(255, 128, 10))
 
@@ -381,6 +397,14 @@ def main():
         len(anatomy) - 1,
         update_display
     )
+
+    cv2.createTrackbar(
+            "Downsample",
+            WINDOW_NAME,
+            0,
+            5,
+            update_display
+        )
 
     cv2.createTrackbar(
         "Slice",
