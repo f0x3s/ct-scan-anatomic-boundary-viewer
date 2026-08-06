@@ -59,19 +59,22 @@ def collate_dicom_files(series_path):
             print("found: " + item.name)
             dicom_files.append(item)
 
+    # extract the slice position from a DICOM file.
+    # this is only valid for dicoms where the slice position varies along the z-axis (towards and away from head of patient)
     def slice_position(dicom):
         dataset = pydicom.dcmread(dicom.path, stop_before_pixels=True)
         return float(dataset.ImagePositionPatient[2])
 
+    # i found that the test datasets i was using werent sorted by slice position...
     dicom_files.sort(key=slice_position)
 
     return dicom_files
 
-# builds a list of tuples containing the dicom image and the dicom pixel datafor each dicom file in the series
-# (<display image>, <pixel data>)
+# builds a list of tuples:
+# (<display image>, <pixel data>, <slice position>, <patient id>)
 def process_dicom_files(dicom_files):
 
-    dicoms = []
+    dcms = []
 
     for item in dicom_files:
 
@@ -85,16 +88,46 @@ def process_dicom_files(dicom_files):
         # builds a numpy array of the dicom pixel data for calculations (scaled to Hounsfield Units)
         hu_array = dicom.pixel_array * dicom.RescaleSlope + dicom.RescaleIntercept
 
-        dicoms.append((image, hu_array))
+        dcms.append((image, hu_array, dicom.ImagePositionPatient[2], dicom.PatientID))
 
         print(f"processed: {item.name}")
 
-    return dicoms
+    return dcms
+
+# function to draw text on an image with a black background for better visibility
+# also simplifies the process of drawing text because I am always using th e same font, scale, and thickness
+def draw_text_on_image(image, text, position, color=(255, 255, 255)):
+
+    font = cv2.FONT_HERSHEY_PLAIN
+    font_thickness = 1
+    font_scale = 1
+
+    # get the size of the text to be drawn: width, height, distance from bottom of text to baseline
+    (text_width, text_height), baseline = cv2.getTextSize(text, font, font_scale, font_thickness)
+
+    # draw a filled rectangle behind the text
+    cv2.rectangle(image, (position[0], position[1] - text_height - baseline), (position[0] + text_width, position[1] + baseline), (0, 0, 0), cv2.FILLED)
+
+    cv2.putText(image, text, position, cv2.FONT_HERSHEY_PLAIN, font_scale, color, font_thickness)
+
 
 def update_display(val):
     slice_index = cv2.getTrackbarPos("Slice", WINDOW_NAME)
 
-    cv2.imshow(WINDOW_NAME, dicoms[slice_index][0])
+    # fetch normalized image for display and convert to BGR from monochrome.
+    display_image = dicoms[slice_index][0]
+    display_image = cv2.cvtColor(display_image, cv2.COLOR_GRAY2BGR)
+
+    
+    display_size = (display_image.shape[1], display_image.shape[0])
+
+    slice_text = f"Slice: {slice_index + 1}/{len(dicoms)-1}\nPosition: {dicoms[slice_index][2]:.2f}mm"
+    patient_text = f"Patient ID: {dicoms[slice_index][3]}"
+
+    draw_text_on_image(display_image, slice_text, (10, 20), color=(255, 255, 255))
+    draw_text_on_image(display_image, patient_text, (10, display_size[1] - 10), color=(255, 128, 10))
+
+    cv2.imshow(WINDOW_NAME, display_image)
 
 
 def main():
