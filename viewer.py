@@ -313,8 +313,10 @@ def update_display(val):
 
     region_of_interest = cv2.getTrackbarPos("Region", WINDOW_NAME)
 
+    # ensure even number for better scaling
     downsample = 2 * cv2.getTrackbarPos("Downsample", WINDOW_NAME)
 
+    # prevent div by 0 error in resize function
     downsample = 1 if downsample == 0 else downsample
 
     # fetch normalized image for display and convert to BGR from monochrome.
@@ -326,7 +328,9 @@ def update_display(val):
         data = dicoms[slice_index][1]
 
         # apply a Gaussian blur to reduce noise
-        kernel = np.floor(1/downsample * 15)
+        # kernel is based on inverse of downsample; less downsampling means heavier blur required to smooth data
+        kernel = np.floor(1/downsample * 16)
+        # ensure odd
         kernel = int(kernel + 1 if kernel % 2 == 0 else kernel)
 
         data = cv2.GaussianBlur(data, (kernel, kernel), 0)
@@ -342,12 +346,16 @@ def update_display(val):
             interpolation=cv2.INTER_NEAREST
         )
 
+        # colored edge image on black bg
         edges = march_squares(half_size_binary, display_image, downsample)
 
-
+        # create mask from edges
         edges_mask = cv2.cvtColor(edges, cv2.COLOR_BGR2GRAY)
+        # i can use the more efficient openCV threshold function here because my image is uint8 (0-255)
         edges_mask = cv2.threshold(edges_mask, 1, 255, cv2.THRESH_BINARY)[1]
 
+        # copy image pixels where edges mask is not white else write (0,0,0)
+        # in service of adding edges atop image
         masked_display_image = cv2.bitwise_and(display_image, display_image, mask=cv2.bitwise_not(edges_mask))
 
         display_image = cv2.add(masked_display_image, edges)
