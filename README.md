@@ -25,9 +25,11 @@ The viewer loads a DICOM series, sorts slices into their correct anatomical orde
 
 > 📂 **[`dicoms`](dicoms)/** — *DICOM CT scan series, prepoulated with test scans*
 > - 📂 **[`ct-abdomen-c4kc-kits-series`](dicoms/ct-abdomen-c4kc-kits-series)/** — *Abdominal CT: C4KC-KiTS Kidney Study*
-> - 📂 **[`ct-chest-lidc-idri-series`](dicoms/ct-chest-lidc-idri-series)/** — *Chest CT: LIDC-IDRI Lung Nodule Study*
+> - 📂 **[`ct-cheust-lidc-idri-series`](dicoms/ct-chest-lidc-idri-series)/** — *Chest CT: LIDC-IDRI Lung Nodule Study*
 > - 📂 **[`ct-pancreas-pancreas-ct-series`](dicoms/ct-pancreas-pancreas-ct-series)/** — *Pancreatic CT: Pancreas-CT Reference Study*
 > - 📂 **[`lung-cancer-full-series`](dicoms/lung-cancer-full-series)/** — *Chest CT: NLST Lung Cancer Screening*
+>
+> 📂 **[`media`](media)/** — *Example Media*
 >
 > 🐍 [`viewer.py`](viewer.py) — *DICOM loading, image processing, segmentation, marching squares, and viewer interface*
 ## Requirements
