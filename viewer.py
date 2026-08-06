@@ -179,7 +179,7 @@ def lookup(cells, downsample) :
         "bottom": (half, downsample),
         "left":   (0, half),
     }
-    
+
     segments = []
 
     for x, y, corners in cells:
@@ -243,6 +243,29 @@ def lookup(cells, downsample) :
             )
             segments.append((point_1, point_2))
 
+        # ambiguos cases
+        if case == 6 or case == 9:
+            point_1 = (
+                origin_x + edge_midpoints["top"][0],
+                origin_y + edge_midpoints["top"][1]
+            )
+            point_2 = (
+                origin_x + edge_midpoints["right"][0],
+                origin_y + edge_midpoints["right"][1]
+            )
+            point_3 = (
+                origin_x + edge_midpoints["left"][0],
+                origin_y + edge_midpoints["left"][1]
+            )
+            point_4 = (
+                origin_x + edge_midpoints["bottom"][0],
+                origin_y + edge_midpoints["bottom"][1]
+            )
+
+
+            segments.append((point_1, point_2))
+            segments.append((point_3, point_4))
+
         if case == 7 or case == 8:
             point_1 = (
                 origin_x + edge_midpoints["left"][0],
@@ -281,7 +304,13 @@ def update_slice(val):
 
 # even though i dont use val, i need it because opencv expects a function with a single argument in it's callback function
 def update_display(val):
-    slice_index = cv2.getTrackbarPos("Slice", WINDOW_NAME)
+
+    # another hacky solution; update_display is called upon created of downsample trakcbar, before slice trackbar is created. This catches the resultant exception.
+    try:
+        slice_index = cv2.getTrackbarPos("Slice", WINDOW_NAME)
+    except:
+        slice_index = round(len(dicoms)/2.0)
+
     region_of_interest = cv2.getTrackbarPos("Region", WINDOW_NAME)
 
     downsample = 2 * cv2.getTrackbarPos("Downsample", WINDOW_NAME)
@@ -297,7 +326,10 @@ def update_display(val):
         data = dicoms[slice_index][1]
 
         # apply a Gaussian blur to reduce noise
-        data = cv2.GaussianBlur(data, (11, 11), 0)
+        kernel = np.floor(1/downsample * 15)
+        kernel = int(kernel + 1 if kernel % 2 == 0 else kernel)
+
+        data = cv2.GaussianBlur(data, (kernel, kernel), 0)
 
         #threshold the data to create a binary image of type uint8 for the selected region of interest
         binary_data = threshold_data(data, region_of_interest)
@@ -399,12 +431,12 @@ def main():
     )
 
     cv2.createTrackbar(
-            "Downsample",
-            WINDOW_NAME,
-            0,
-            5,
-            update_display
-        )
+                "Downsample",
+                WINDOW_NAME,
+                1,
+                5,
+                update_display
+            )
 
     cv2.createTrackbar(
         "Slice",
