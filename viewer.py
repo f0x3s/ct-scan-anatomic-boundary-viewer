@@ -300,7 +300,7 @@ def draw_text_on_image(image, text, position, color=(255, 255, 255)):
     # draw a filled rectangle behind the text
     cv2.rectangle(image, (position[0], position[1] - text_height - baseline), (position[0] + text_width, position[1] + baseline), (0, 0, 0), cv2.FILLED)
 
-    cv2.putText(image, text, position, cv2.FONT_HERSHEY_PLAIN, font_scale, color, font_thickness)
+    cv2.putText(image, text, position, font, font_scale, color, font_thickness)
 
 # hacky, but because my thresholding and marching squares functions are so slow, this sets the region trakcbar to 0 when slice trackbar is changed
 # this way user can scroll slices fast, and then change the region of interest after they have found the slice they want to view
@@ -389,11 +389,14 @@ def update_display(val=None):
     # get the size of the display image for positioning text
     display_size = (display_image.shape[1], display_image.shape[0])
 
-    slice_text = f"Slice: {slice_index + 1}/{len(dicoms)-1}\nPosition: {dicoms[slice_index][2]:.2f}mm"
+    slice_text_a = f"Slice: {slice_index + 1}/{len(dicoms)-1}"
+    slice_text_b = f"Position: {dicoms[slice_index][2]:.2f}mm"
+
     patient_text = f"Patient ID: {dicoms[slice_index][3]}"
     region_text = f"Region: {anatomy[region_of_interest][0]}"
 
-    draw_text_on_image(display_image, slice_text, (10, 20), color=(255, 255, 255))
+    draw_text_on_image(display_image, slice_text_a, (10, 20), color=(255, 255, 255))
+    draw_text_on_image(display_image, slice_text_b, (10,40), color=(255, 255, 255))
     draw_text_on_image(display_image, region_text, (10, 60), color=REGION_COLOR)
 
     draw_text_on_image(display_image, patient_text, (10, display_size[1] - 10), color=(255, 128, 10))

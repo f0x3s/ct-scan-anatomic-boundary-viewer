@@ -1,13 +1,14 @@
 # CT Scan Anatomic Boundary Viewer
+A lightweight Python application for viewing and segmenting CT scans stored as DICOM files.
 
 <p align="center">
   <img src="media/example1.png" alt="example 1" style="width:45%; height:auto;">
   <img src="media/example2.png" alt="example 2" style="width:45%; height:auto;">
 </p>
 
-A lightweight Python application for viewing and segmenting CT scans stored as DICOM files.
-
 The viewer loads a DICOM series, sorts slices into their correct anatomical order, and allows the user to identify boundaries between tissue-density regions using Hounsfield units and a marching squares algorithm.
+
+*Created as a final project for ITEC1150 at Minneapolis College.*
 
 ## Features
 
@@ -16,7 +17,7 @@ The viewer loads a DICOM series, sorts slices into their correct anatomical orde
 - Segment regions based on Hounsfield unit ranges
 - Highlight selected tissue-density regions
 - Generate isolines around selected regions using marching squares
-- Variable downsampling
+- Variable downsampling of data for faster segmentation
 - Save the current viewer image
 
 ## Files
@@ -24,9 +25,11 @@ The viewer loads a DICOM series, sorts slices into their correct anatomical orde
 
 > 📂 **[`dicoms`](dicoms)/** — *DICOM CT scan series, prepoulated with test scans*
 > - 📂 **[`ct-abdomen-c4kc-kits-series`](dicoms/ct-abdomen-c4kc-kits-series)/** — *Abdominal CT: C4KC-KiTS Kidney Study*
-> - 📂 **[`ct-chest-lidc-idri-series`](dicoms/ct-chest-lidc-idri-series)/** — *Chest CT: LIDC-IDRI Lung Nodule Study*
+> - 📂 **[`ct-cheust-lidc-idri-series`](dicoms/ct-chest-lidc-idri-series)/** — *Chest CT: LIDC-IDRI Lung Nodule Study*
 > - 📂 **[`ct-pancreas-pancreas-ct-series`](dicoms/ct-pancreas-pancreas-ct-series)/** — *Pancreatic CT: Pancreas-CT Reference Study*
 > - 📂 **[`lung-cancer-full-series`](dicoms/lung-cancer-full-series)/** — *Chest CT: NLST Lung Cancer Screening*
+>
+> 📂 **[`media`](media)/** — *Example Media*
 >
 > 🐍 [`viewer.py`](viewer.py) — *DICOM loading, image processing, segmentation, marching squares, and viewer interface*
 ## Requirements
@@ -43,6 +46,7 @@ Install dependencies with:
 ```bash
 pip install pydicom dicom2jpg opencv-python numpy
 ```
+*note: If fonts fail to load consider downgrading to opencv_python-4.14.0.94*
 
 ## Usage
 
