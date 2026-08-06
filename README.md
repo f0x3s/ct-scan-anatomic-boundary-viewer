@@ -1,5 +1,10 @@
 # CT Scan Anatomic Boundary Viewer
 
+<p align="center">
+  <img src="media/example1.png" alt="example 1" style="width:45%; height:auto;">
+  <img src="media/example2.png" alt="example 2" style="width:45%; height:auto;">
+</p>
+
 A lightweight Python application for viewing and segmenting CT scans stored as DICOM files.
 
 The viewer loads a DICOM series, sorts slices into their correct anatomical order, and allows the user to identify boundaries between tissue-density regions using Hounsfield units and a marching squares algorithm.
