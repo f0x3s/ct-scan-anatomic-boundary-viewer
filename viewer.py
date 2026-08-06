@@ -6,6 +6,8 @@ import numpy as np
 
 master_folder_path = "./dicoms"
 
+WINDOW_NAME = "DICOM Viewer"
+
 # used for printing colors in terminal
 class colors:
     PURPLE = '\033[95m'
@@ -66,6 +68,7 @@ def collate_dicom_files(series_path):
     return dicom_files
 
 # builds a list of tuples containing the dicom image and the dicom pixel datafor each dicom file in the series
+# (<display image>, <pixel data>)
 def process_dicom_files(dicom_files):
 
     dicoms = []
@@ -76,6 +79,7 @@ def process_dicom_files(dicom_files):
         dicom = pydicom.dcmread(item)
 
         # builds a numpy array of the data for easy diplay (scaling data to 0-255)
+        # dicom2jpg used because it is simpler for creating a viewable image than using pydicom and cv2 directly
         image = dicom2jpg.dicom2img(item.path)
 
         # builds a numpy array of the dicom pixel data for calculations (scaled to Hounsfield Units)
@@ -87,7 +91,16 @@ def process_dicom_files(dicom_files):
 
     return dicoms
 
+def update_display(val):
+    slice_index = cv2.getTrackbarPos("Slice", WINDOW_NAME)
+
+    cv2.imshow(WINDOW_NAME, dicoms[slice_index][0])
+
+
 def main():
+
+    # this ahs to be global so that the update_display function can access it
+    global dicoms
 
     print(f"{colors.PURPLE}Welcome to the DICOM Viewer!{colors.ENDC}")
 
@@ -118,7 +131,7 @@ def main():
 
     dicoms = process_dicom_files(collate_dicom_files(series[1]))
 
-    print(f"\n{colors.PURPLE}Found {len(dicoms)} dicom images in the selected series. Proceed? (y/n){colors.ENDC}")
+    print(f"\n{colors.PURPLE}Found {len(dicoms)-1} dicom images in the selected series. Proceed? (y/n){colors.ENDC}")
 
     while(True):
         try: 
@@ -134,6 +147,22 @@ def main():
         except ValueError as e:
                 print(f"{colors.RED}Error: {e}{colors.ENDC}")
 
+
+    # build openCV window
+    cv2.namedWindow(WINDOW_NAME)
+
+    cv2.createTrackbar(
+        "Slice",
+        WINDOW_NAME,
+        round(len(dicoms)/2.0),
+        len(dicoms) - 1,
+        update_display
+    )
+
+    # wait for esc key to be pressed to exit the program
+    while True:
+        if cv2.waitKey(1) & 0xFF == 27:
+            break
 
 
 
