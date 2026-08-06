@@ -303,9 +303,6 @@ def update_slice(val):
     cv2.setTrackbarPos("Region", WINDOW_NAME, 0)
     update_display(val)
 
-def update_tint(val):
-    tint_amt = val/100
-
 # even though i dont use val, i need it because opencv expects a function with a single argument in it's callback function
 def update_display(val):
 
@@ -371,7 +368,6 @@ def update_display(val):
 
         # merge tinted region with display image
         display_image = cv2.add(masked_display_image, region_tint)
-
 
         # create mask from edges
         edges_mask = cv2.cvtColor(edges, cv2.COLOR_BGR2GRAY)
